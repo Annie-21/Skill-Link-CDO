@@ -1,7 +1,7 @@
 export const workerMetrics = [
-  { label: "Offers Received", value: 2,       accentColor: "#2e75b6" },
-  { label: "Jobs Completed",  value: 3,       accentColor: "#1d9e75" },
-  { label: "Average Rating",  value: "4.7",   accentColor: "#534ab7" },
+  { label: "Offers Received", value: 2,        accentColor: "#2e75b6" },
+  { label: "Jobs Completed",  value: 3,        accentColor: "#1d9e75" },
+  { label: "Average Rating",  value: "4.7",    accentColor: "#534ab7" },
   { label: "Total Earned",    value: "₱2,400", accentColor: "#ba7517" },
 ];
 
@@ -108,6 +108,18 @@ export const initialJobOffers = [
     budgetMax: 1500,
     preferredDate: "2026-03-22",
     status: "pending_response",
+  },
+  // ── Pre-accepted offer so Worker can rate the Resident ───────────────
+  {
+    offerId: "off-003",
+    residentName: "Sandra Lim",
+    location: "Purok 6, Brgy. Bulua",
+    description: "Repair main water line connection at the back of the house.",
+    budgetMin: 700,
+    budgetMax: 1200,
+    preferredDate: "2026-03-16",
+    status: "completed",
+    workerRatingSubmitted: false,
   },
 ];
 

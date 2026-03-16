@@ -1,6 +1,10 @@
 import { useState, useMemo } from "react";
-import { matchedWorkers } from "../data/workers.data";
-import { currentResident, residentRequestHistory } from "../data/residents.data";
+import { matchedWorkers }    from "../data/workers.data";
+import {
+  currentResident,
+  residentRequestHistory,
+  initialActiveOffers,
+} from "../data/residents.data";
 
 export function useResidentDashboard() {
   const [activeTab, setActiveTab] = useState("request");
@@ -22,6 +26,12 @@ export function useResidentDashboard() {
   // History search state
   const [historySearch, setHistorySearch] = useState("");
 
+  // Active offers (for mark complete + rating)
+  const [activeOffers, setActiveOffers]           = useState(initialActiveOffers);
+  const [ratingOpenForOffer, setRatingOpenForOffer] = useState(null);
+
+  // ── Derived data ──────────────────────────────────────────────────────
+
   const filteredWorkers = useMemo(() => {
     if (filterCategory === "All") return matchedWorkers;
     return matchedWorkers.filter((w) => w.skillCategory === filterCategory);
@@ -37,11 +47,13 @@ export function useResidentDashboard() {
     const q = historySearch.toLowerCase();
     return residentRequestHistory.filter(
       (r) =>
-        r.category.toLowerCase().includes(q) ||
+        r.category.toLowerCase().includes(q)    ||
         r.description.toLowerCase().includes(q) ||
         r.workerName.toLowerCase().includes(q)
     );
   }, [historySearch]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -62,27 +74,52 @@ export function useResidentDashboard() {
     setActiveTab("matches");
   }
 
+  function handleMarkComplete(offerId) {
+    setActiveOffers((prev) =>
+      prev.map((o) =>
+        o.offerId === offerId ? { ...o, status: "completed" } : o
+      )
+    );
+    setRatingOpenForOffer(offerId);
+  }
+
+  function handleResidentRatingSubmit(offerId) {
+    setActiveOffers((prev) =>
+      prev.map((o) =>
+        o.offerId === offerId
+          ? { ...o, residentRatingSubmitted: true }
+          : o
+      )
+    );
+    setRatingOpenForOffer(null);
+  }
+
   return {
     // Tab
-    activeTab,        setActiveTab,
+    activeTab,            setActiveTab,
     // Form
-    selectedCategory, setSelectedCategory,
-    description,      setDescription,
-    budgetMin,        setBudgetMin,
-    budgetMax,        setBudgetMax,
-    location,         setLocation,
-    preferredDate,    setPreferredDate,
+    selectedCategory,     setSelectedCategory,
+    description,          setDescription,
+    budgetMin,            setBudgetMin,
+    budgetMax,            setBudgetMax,
+    location,             setLocation,
+    preferredDate,        setPreferredDate,
     formError,
     // Matches
     showMatches,
-    offerSentTo,      setOfferSentTo,
-    filterCategory,   setFilterCategory,
+    offerSentTo,          setOfferSentTo,
+    filterCategory,       setFilterCategory,
     filteredWorkers,
     matchedCategories,
     // History
-    historySearch,    setHistorySearch,
+    historySearch,        setHistorySearch,
     filteredHistory,
-    // Handler
+    // Active offers + rating
+    activeOffers,
+    ratingOpenForOffer,
+    handleMarkComplete,
+    handleResidentRatingSubmit,
+    // Form submit
     handleSubmit,
   };
 }

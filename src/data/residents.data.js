@@ -33,3 +33,20 @@ export const residentRequestHistory = [
     workerName: "Jose Villanueva",
   },
 ];
+
+// ── Active accepted offer so Resident can mark complete and rate ──────────────
+export const initialActiveOffers = [
+  {
+    offerId: "act-001",
+    workerId: "w-001",
+    workerName: "Juan dela Cruz",
+    skillCategory: "Plumber",
+    description: "Fix leaking kitchen pipes and replace faucet in the bathroom.",
+    location: "Purok 4, Brgy. Bulua",
+    budgetMin: 600,
+    budgetMax: 1000,
+    preferredDate: "2026-03-18",
+    status: "offer_accepted",
+    residentRatingSubmitted: false,
+  },
+];

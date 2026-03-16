@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage          from "./pages/LoginPage";
 import WorkerDashboard    from "./pages/WorkerDashboard";
-import ResidentDashboard  from "./pages/ResidentDashboard";
+import ResidentDashboard  from "./pages/ResidentDashboard.jsx";
 import AdminDashboard     from "./pages/AdminDashboard";
 
 function App() {

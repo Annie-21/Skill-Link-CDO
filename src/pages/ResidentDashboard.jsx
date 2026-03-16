@@ -2,9 +2,11 @@ import Navbar      from "../components/Navbar";
 import MetricCard  from "../components/MetricCard";
 import StatusBadge from "../components/StatusBadge";
 import WorkerCard  from "../components/WorkerCard";
+import RatingPanel from "../components/RatingPanel";
 import {
   PlusCircle, ClipboardList, UserCircle,
   MapPin, CalendarDays, Banknote, Search,
+  CheckCircle, Star,
 } from "lucide-react";
 import { useResidentDashboard } from "../hooks/useResidentDashboard";
 import { skillCategories }      from "../data/categories.data";
@@ -20,21 +22,25 @@ const tabs = [
 
 function ResidentDashboard({ currentUser, onLogout }) {
   const {
-    activeTab,        setActiveTab,
-    selectedCategory, setSelectedCategory,
-    description,      setDescription,
-    budgetMin,        setBudgetMin,
-    budgetMax,        setBudgetMax,
-    location,         setLocation,
-    preferredDate,    setPreferredDate,
+    activeTab,            setActiveTab,
+    selectedCategory,     setSelectedCategory,
+    description,          setDescription,
+    budgetMin,            setBudgetMin,
+    budgetMax,            setBudgetMax,
+    location,             setLocation,
+    preferredDate,        setPreferredDate,
     formError,
     showMatches,
-    offerSentTo,      setOfferSentTo,
-    filterCategory,   setFilterCategory,
+    offerSentTo,          setOfferSentTo,
+    filterCategory,       setFilterCategory,
     filteredWorkers,
     matchedCategories,
-    historySearch,    setHistorySearch,
+    historySearch,        setHistorySearch,
     filteredHistory,
+    activeOffers,
+    ratingOpenForOffer,
+    handleMarkComplete,
+    handleResidentRatingSubmit,
     handleSubmit,
   } = useResidentDashboard();
 
@@ -65,7 +71,9 @@ function ResidentDashboard({ currentUser, onLogout }) {
           <div className="flex border-b border-gray-200">
             {tabs.map((tab) => {
               const Icon  = tab.icon;
-              const badge = tab.key === "matches" && showMatches ? matchedWorkers.length : null;
+              const badge = tab.key === "matches" && showMatches
+                ? matchedWorkers.length
+                : null;
               return (
                 <button
                   key={tab.key}
@@ -93,7 +101,9 @@ function ResidentDashboard({ currentUser, onLogout }) {
             {/* ── New Request Tab ─────────────────────────────────────── */}
             {activeTab === "request" && (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <h2 className="text-base font-bold text-[#1f4e79]">Submit a Job Request</h2>
+                <h2 className="text-base font-bold text-[#1f4e79]">
+                  Submit a Job Request
+                </h2>
 
                 {formError && (
                   <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -102,7 +112,9 @@ function ResidentDashboard({ currentUser, onLogout }) {
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="category" className="text-sm font-semibold text-gray-700">Skill Category</label>
+                  <label htmlFor="category" className="text-sm font-semibold text-gray-700">
+                    Skill Category
+                  </label>
                   <select
                     id="category"
                     value={selectedCategory}
@@ -137,33 +149,76 @@ function ResidentDashboard({ currentUser, onLogout }) {
 
                 <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="budgetMin" className="text-sm font-semibold text-gray-700">Budget Min (₱)</label>
-                    <input id="budgetMin" type="number" placeholder="e.g. 400" value={budgetMin} onChange={(e) => setBudgetMin(e.target.value)} min={1} required className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition" />
+                    <label htmlFor="budgetMin" className="text-sm font-semibold text-gray-700">
+                      Budget Min (₱)
+                    </label>
+                    <input
+                      id="budgetMin"
+                      type="number"
+                      placeholder="e.g. 400"
+                      value={budgetMin}
+                      onChange={(e) => setBudgetMin(e.target.value)}
+                      min={1}
+                      required
+                      className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition"
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="budgetMax" className="text-sm font-semibold text-gray-700">Budget Max (₱)</label>
-                    <input id="budgetMax" type="number" placeholder="e.g. 1000" value={budgetMax} onChange={(e) => setBudgetMax(e.target.value)} min={1} required className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition" />
+                    <label htmlFor="budgetMax" className="text-sm font-semibold text-gray-700">
+                      Budget Max (₱)
+                    </label>
+                    <input
+                      id="budgetMax"
+                      type="number"
+                      placeholder="e.g. 1000"
+                      value={budgetMax}
+                      onChange={(e) => setBudgetMax(e.target.value)}
+                      min={1}
+                      required
+                      className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition"
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="location" className="text-sm font-semibold text-gray-700">Job Location</label>
+                    <label htmlFor="location" className="text-sm font-semibold text-gray-700">
+                      Job Location
+                    </label>
                     <div className="relative">
                       <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} required className="w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition" />
+                      <input
+                        id="location"
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        required
+                        className="w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition"
+                      />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="preferredDate" className="text-sm font-semibold text-gray-700">Preferred Date</label>
+                    <label htmlFor="preferredDate" className="text-sm font-semibold text-gray-700">
+                      Preferred Date
+                    </label>
                     <div className="relative">
                       <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input id="preferredDate" type="date" value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)} required className="w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition" />
+                      <input
+                        id="preferredDate"
+                        type="date"
+                        value={preferredDate}
+                        onChange={(e) => setPreferredDate(e.target.value)}
+                        required
+                        className="w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <button type="submit" className="w-full py-3 bg-[#1f4e79] text-white font-bold rounded-lg hover:bg-[#2e75b6] active:scale-[0.99] transition-all mt-1 flex items-center justify-center gap-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#1f4e79] text-white font-bold rounded-lg hover:bg-[#2e75b6] active:scale-[0.99] transition-all mt-1 flex items-center justify-center gap-2"
+                >
                   <Search size={17} />
                   Find Matched Workers
                 </button>
@@ -177,14 +232,18 @@ function ResidentDashboard({ currentUser, onLogout }) {
                   <div className="text-center py-10 text-gray-400">
                     <Search size={36} className="mx-auto mb-2 opacity-30" />
                     <p className="text-sm">Submit a job request to see matched workers.</p>
-                    <button onClick={() => setActiveTab("request")} className="mt-3 text-xs text-[#2e75b6] font-semibold hover:underline">
+                    <button
+                      onClick={() => setActiveTab("request")}
+                      className="mt-3 text-xs text-[#2e75b6] font-semibold hover:underline"
+                    >
                       Go to New Request
                     </button>
                   </div>
                 ) : (
                   <>
                     <p className="text-sm text-gray-500 mb-4">
-                      Showing <strong>{filteredWorkers.length}</strong> of {matchedWorkers.length} verified workers.
+                      Showing <strong>{filteredWorkers.length}</strong> of{" "}
+                      {matchedWorkers.length} verified workers.
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mb-4">
                       <span className="text-xs font-semibold text-gray-400">Filter:</span>
@@ -204,11 +263,16 @@ function ResidentDashboard({ currentUser, onLogout }) {
                     </div>
                     {offerSentTo && (
                       <div className="bg-emerald-50 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-lg text-sm mb-4">
-                        Offer sent to <strong>{matchedWorkers.find((w) => w.workerId === offerSentTo)?.fullName}</strong>! Waiting for their response.
+                        Offer sent to{" "}
+                        <strong>
+                          {matchedWorkers.find((w) => w.workerId === offerSentTo)?.fullName}
+                        </strong>! Waiting for their response.
                       </div>
                     )}
                     {filteredWorkers.length === 0 ? (
-                      <p className="text-center text-gray-400 py-8 text-sm">No workers found for the selected filter.</p>
+                      <p className="text-center text-gray-400 py-8 text-sm">
+                        No workers found for the selected filter.
+                      </p>
                     ) : (
                       <div className="flex flex-col gap-4">
                         {filteredWorkers.map((worker) => (
@@ -229,41 +293,165 @@ function ResidentDashboard({ currentUser, onLogout }) {
             {/* ── History Tab ─────────────────────────────────────────── */}
             {activeTab === "history" && (
               <div className="flex flex-col gap-4">
-                <div className="relative">
-                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by category, description, or worker..."
-                    value={historySearch}
-                    onChange={(e) => setHistorySearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition"
-                  />
-                </div>
-                {filteredHistory.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400">
-                    <ClipboardList size={36} className="mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No requests found.</p>
-                  </div>
-                ) : (
-                  filteredHistory.map((req) => (
-                    <article key={req.requestId} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                      <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
-                        <div>
-                          <span className="text-xs font-semibold text-[#2e75b6] bg-blue-50 px-2.5 py-0.5 rounded-full">{req.category}</span>
-                          <p className="text-sm font-medium text-gray-700 mt-1.5">{req.description}</p>
+
+                {/* Active accepted offers — Mark as Completed + Rating */}
+                {activeOffers.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">
+                      Active Jobs
+                    </h3>
+                    <div className="flex flex-col gap-3">
+                      {activeOffers.map((offer) => (
+                        <div key={offer.offerId}>
+                          <article
+                            className={`rounded-xl border border-l-4 p-4
+                              ${offer.status === "completed"
+                                ? "bg-amber-50/50 border-gray-200 border-l-amber-400"
+                                : "bg-emerald-50/40 border-gray-200 border-l-emerald-500"
+                              }`}
+                          >
+                            <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
+                              <div>
+                                <span className="text-xs font-semibold text-[#2e75b6] bg-blue-50 px-2.5 py-0.5 rounded-full">
+                                  {offer.skillCategory}
+                                </span>
+                                <p className="text-sm font-medium text-gray-700 mt-1.5">
+                                  {offer.description}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  Worker: <strong>{offer.workerName}</strong>
+                                </p>
+                              </div>
+                              <StatusBadge status={offer.status} />
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <MapPin size={12} />{offer.location}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <CalendarDays size={12} />{offer.preferredDate}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Banknote size={12} />
+                                ₱{offer.budgetMin} – ₱{offer.budgetMax}
+                              </span>
+                            </div>
+
+                            {/* Mark as Completed button */}
+                            {offer.status === "offer_accepted" && (
+                              <div className="mt-3 pt-3 border-t border-emerald-200 flex justify-between items-center">
+                                <p className="text-xs text-emerald-700 font-medium">
+                                  Work done? Mark this job as completed.
+                                </p>
+                                <button
+                                  onClick={() => handleMarkComplete(offer.offerId)}
+                                  className="flex items-center gap-1.5 px-4 py-1.5 bg-[#1d9e75] text-white text-xs font-bold rounded-lg hover:bg-[#0f6e56] transition-colors"
+                                >
+                                  <CheckCircle size={14} />
+                                  Mark as Completed
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Rate Worker button */}
+                            {offer.status === "completed" &&
+                              !offer.residentRatingSubmitted &&
+                              ratingOpenForOffer !== offer.offerId && (
+                              <div className="mt-3 pt-3 border-t border-amber-200 flex justify-between items-center">
+                                <p className="text-xs text-amber-700 font-medium">
+                                  Job completed — rate the worker to finish.
+                                </p>
+                                <button
+                                  onClick={() => handleMarkComplete(offer.offerId)}
+                                  className="flex items-center gap-1.5 px-4 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 transition-colors"
+                                >
+                                  <Star size={13} className="fill-white" />
+                                  Rate Worker
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Rating submitted confirmation */}
+                            {offer.status === "completed" && offer.residentRatingSubmitted && (
+                              <div className="mt-3 pt-3 border-t border-emerald-200 flex items-center gap-2 text-xs text-emerald-700 font-medium">
+                                <CheckCircle size={13} />
+                                You have rated this worker.
+                              </div>
+                            )}
+                          </article>
+
+                          {/* Inline rating panel */}
+                          {offer.status === "completed" &&
+                            !offer.residentRatingSubmitted &&
+                            ratingOpenForOffer === offer.offerId && (
+                            <RatingPanel
+                              targetName={offer.workerName}
+                              targetRole="worker"
+                              onSubmit={(data) =>
+                                handleResidentRatingSubmit(offer.offerId, data)
+                              }
+                            />
+                          )}
                         </div>
-                        <StatusBadge status={req.status} />
-                      </div>
-                      <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500">
-                        <span className="flex items-center gap-1"><CalendarDays size={12} />{req.date}</span>
-                        <span className="flex items-center gap-1"><Banknote size={12} />₱{req.budgetMin} – ₱{req.budgetMax}</span>
-                        {req.workerName && (
-                          <span className="flex items-center gap-1"><UserCircle size={12} />{req.workerName}</span>
-                        )}
-                      </div>
-                    </article>
-                  ))
+                      ))}
+                    </div>
+                  </div>
                 )}
+
+                {/* Completed history search + list */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">
+                    Past Requests
+                  </h3>
+                  <div className="relative mb-3">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by category, description, or worker..."
+                      value={historySearch}
+                      onChange={(e) => setHistorySearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-[#2e75b6] focus:ring-2 focus:ring-blue-100 transition"
+                    />
+                  </div>
+
+                  {filteredHistory.length === 0 ? (
+                    <div className="text-center py-10 text-gray-400">
+                      <ClipboardList size={36} className="mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No past requests found.</p>
+                    </div>
+                  ) : (
+                    filteredHistory.map((req) => (
+                      <article key={req.requestId} className="border border-gray-200 rounded-xl p-4 bg-gray-50 mb-3">
+                        <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
+                          <div>
+                            <span className="text-xs font-semibold text-[#2e75b6] bg-blue-50 px-2.5 py-0.5 rounded-full">
+                              {req.category}
+                            </span>
+                            <p className="text-sm font-medium text-gray-700 mt-1.5">
+                              {req.description}
+                            </p>
+                          </div>
+                          <StatusBadge status={req.status} />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <CalendarDays size={12} />{req.date}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Banknote size={12} />₱{req.budgetMin} – ₱{req.budgetMax}
+                          </span>
+                          {req.workerName && (
+                            <span className="flex items-center gap-1">
+                              <UserCircle size={12} />{req.workerName}
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+
               </div>
             )}
 
