@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import WorkerCard from "../components/WorkerCard";
+import MetricCard from "../components/MetricCard";
+import StatusBadge from "../components/StatusBadge";
 import {
   currentResident,
   skillCategories,
@@ -13,76 +15,70 @@ function JobRequestPage() {
   const [budgetMin, setBudgetMin]               = useState("");
   const [budgetMax, setBudgetMax]               = useState("");
   const [showMatches, setShowMatches]           = useState(false);
-  const [sentOffer, setSentOffer]               = useState(null);
+  const [offerSentTo, setOfferSentTo]           = useState(null);
+  const [filterCategory, setFilterCategory]     = useState("All");
+
+  // Interaction: filter matched workers by skill category
+  const filteredWorkers = useMemo(() => {
+    if (filterCategory === "All") return matchedWorkers;
+    return matchedWorkers.filter((w) => w.skillCategory === filterCategory);
+  }, [filterCategory]);
+
+  // Unique categories from the matched list for filter buttons
+  const matchedCategories = [
+    "All",
+    ...new Set(matchedWorkers.map((w) => w.skillCategory)),
+  ];
 
   function handleSubmit(e) {
     e.preventDefault();
     setShowMatches(true);
-  }
-
-  function handleSendOffer(worker) {
-    setSentOffer(worker.fullName);
+    setFilterCategory("All");
+    setOfferSentTo(null);
   }
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-7 flex flex-col gap-5">
 
-      {/* System metrics banner */}
-      <section
-        className="flex flex-wrap gap-3"
-        aria-label="System metrics"
-      >
-        <article className="bg-white rounded-xl p-5 text-center flex-1 min-w-[120px] shadow-sm border-t-4 border-t-[#2e75b6]">
-          <span className="block text-3xl font-bold text-[#1f4e79] leading-tight">
-            {systemMetrics.totalWorkers}
-          </span>
-          <span className="block text-xs text-gray-500 mt-1">
-            Verified Workers
-          </span>
-        </article>
-        <article className="bg-white rounded-xl p-5 text-center flex-1 min-w-[120px] shadow-sm border-t-4 border-t-[#1d9e75]">
-          <span className="block text-3xl font-bold text-[#1f4e79] leading-tight">
-            {systemMetrics.activeRequests}
-          </span>
-          <span className="block text-xs text-gray-500 mt-1">
-            Active Requests
-          </span>
-        </article>
-        <article className="bg-white rounded-xl p-5 text-center flex-1 min-w-[120px] shadow-sm border-t-4 border-t-[#534ab7]">
-          <span className="block text-3xl font-bold text-[#1f4e79] leading-tight">
-            {systemMetrics.completedJobs}
-          </span>
-          <span className="block text-xs text-gray-500 mt-1">
-            Completed Jobs
-          </span>
-        </article>
-        <article className="bg-white rounded-xl p-5 text-center flex-1 min-w-[120px] shadow-sm border-t-4 border-t-[#ba7517]">
-          <span className="block text-3xl font-bold text-[#1f4e79] leading-tight">
-            {systemMetrics.totalResidents}
-          </span>
-          <span className="block text-xs text-gray-500 mt-1">
-            Registered Residents
-          </span>
-        </article>
+      {/* Metrics row — MetricCard component with props */}
+      <section className="flex flex-wrap gap-3" aria-label="System metrics">
+        {systemMetrics.map((m) => (
+          <MetricCard
+            key={m.label}
+            label={m.label}
+            value={m.value}
+            accentColor={m.accentColor}
+          />
+        ))}
       </section>
 
-      {/* Job request form */}
+      {/* Resident info banner — StatusBadge component with props */}
+      <section
+        className="bg-white rounded-xl px-5 py-4 flex flex-wrap justify-between items-center gap-3 shadow-sm border-l-4 border-l-emerald-500"
+        aria-label="Resident info"
+      >
+        <div className="flex flex-col gap-0.5">
+          <span className="font-semibold text-sm">
+            Hello, <strong>{currentResident.name}</strong>
+          </span>
+          <span className="text-xs text-gray-500">
+            {currentResident.address}
+          </span>
+        </div>
+        <StatusBadge status={currentResident.verificationStatus} />
+      </section>
+
+      {/* Job Request Form */}
       <section
         className="bg-white rounded-2xl p-7 shadow-md"
         aria-label="Submit job request"
       >
-        <h2 className="text-xl font-bold text-[#1f4e79] mb-2">
+        <h2 className="text-xl font-bold text-[#1f4e79] mb-5">
           Request a Skilled Worker
         </h2>
-        <p className="text-sm text-gray-500 mb-5">
-          Hello,{" "}
-          <strong className="text-gray-700">{currentResident.name}</strong>!
-          Fill in the details below to find a verified worker near you.
-        </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-          {/* Skill Category — rendered from skillCategories array */}
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="category"
@@ -190,40 +186,79 @@ function JobRequestPage() {
         </form>
       </section>
 
-      {/* Matched workers list — rendered from matchedWorkers array */}
+      {/* Matched Workers Section */}
       {showMatches && (
         <section
           className="bg-white rounded-2xl p-7 shadow-md"
           aria-label="Matched workers"
         >
-          <h2 className="text-xl font-bold text-[#1f4e79] mb-1">
-            ML-Matched Workers
-          </h2>
-          <p className="text-sm text-gray-500 mb-5">
-            Showing{" "}
-            <strong>{matchedWorkers.length}</strong> verified workers ranked
-            by skill match, proximity, price compatibility, and rating.
-          </p>
 
-          {sentOffer && (
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-[#1f4e79]">
+              ML-Matched Workers
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Showing <strong>{filteredWorkers.length}</strong> of{" "}
+              {matchedWorkers.length} verified workers — ranked by skill,
+              proximity, price, and rating.
+            </p>
+          </div>
+
+          {/* Interaction: category filter buttons */}
+          <div
+            className="flex flex-wrap items-center gap-2 mb-4"
+            role="group"
+            aria-label="Filter by category"
+          >
+            <span className="text-xs font-semibold text-gray-400">
+              Filter:
+            </span>
+            {matchedCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setFilterCategory(cat)}
+                className={`px-4 py-1 rounded-full text-sm border transition-all
+                  ${filterCategory === cat
+                    ? "bg-[#1f4e79] text-white border-[#1f4e79] font-semibold"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-[#2e75b6] hover:text-[#2e75b6]"
+                  }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Offer confirmation alert */}
+          {offerSentTo && (
             <div
               className="bg-emerald-50 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-lg text-sm mb-4"
               role="alert"
             >
-              ✓ Job offer sent to <strong>{sentOffer}</strong>! Waiting for
-              their response.
+              ✓ Job offer sent to{" "}
+              <strong>
+                {matchedWorkers.find((w) => w.workerId === offerSentTo)?.fullName}
+              </strong>
+              ! Waiting for their response.
             </div>
           )}
 
-          <div className="flex flex-col gap-4">
-            {matchedWorkers.map((worker) => (
-              <WorkerCard
-                key={worker.workerId}
-                worker={worker}
-                onSendOffer={handleSendOffer}
-              />
-            ))}
-          </div>
+          {/* Empty state */}
+          {filteredWorkers.length === 0 ? (
+            <p className="text-center text-gray-400 py-8 text-sm">
+              No workers found for the selected category filter.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {filteredWorkers.map((worker) => (
+                <WorkerCard
+                  key={worker.workerId}
+                  worker={worker}
+                  onSendOffer={(w) => setOfferSentTo(w.workerId)}
+                  offerSentTo={offerSentTo}
+                />
+              ))}
+            </div>
+          )}
 
         </section>
       )}
