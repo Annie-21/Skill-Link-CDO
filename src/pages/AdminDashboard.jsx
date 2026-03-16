@@ -1,84 +1,33 @@
-import { useState, useMemo } from "react";
-import Navbar from "../components/Navbar";
-import MetricCard from "../components/MetricCard";
+import Navbar      from "../components/Navbar";
+import MetricCard  from "../components/MetricCard";
 import StatusBadge from "../components/StatusBadge";
 import {
-  ShieldCheck,
-  BarChart3,
-  CheckCircle,
-  XCircle,
-  User,
-  Wrench,
-  Search,
-  FileText,
-  AlertCircle,
-  CalendarDays,
+  ShieldCheck, BarChart3, CheckCircle, XCircle,
+  User, Wrench, Search, FileText, AlertCircle, CalendarDays,
 } from "lucide-react";
-import {
-  adminMetrics,
-  initialPendingProfiles,
-  workersByCategory,
-} from "../data/sampleData";
+import { useAdminDashboard }                          from "../hooks/useAdminDashboard";
+import { adminMetrics, workersByCategory, jobStatusBreakdown } from "../data/admin.data";
+
+const tabs = [
+  { key: "queue",     label: "Verification Queue", icon: ShieldCheck },
+  { key: "analytics", label: "Analytics",          icon: BarChart3   },
+];
 
 function AdminDashboard({ currentUser, onLogout }) {
-  const [activeTab, setActiveTab]     = useState("queue");
-  const [profiles, setProfiles]       = useState(initialPendingProfiles);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter]   = useState("all");
-
-  // Reject form state
-  const [rejectingId, setRejectingId]   = useState(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectError, setRejectError]   = useState("");
-
-  function handleApprove(userId) {
-    setProfiles((prev) =>
-      prev.map((p) =>
-        p.userId === userId ? { ...p, status: "verified" } : p
-      )
-    );
-  }
-
-  function openRejectForm(userId) {
-    setRejectingId(userId);
-    setRejectReason("");
-    setRejectError("");
-  }
-
-  function handleRejectSubmit(e) {
-    e.preventDefault();
-    if (!rejectReason.trim()) {
-      setRejectError("Please provide a reason for rejection.");
-      return;
-    }
-    setProfiles((prev) =>
-      prev.map((p) =>
-        p.userId === rejectingId
-          ? { ...p, status: "rejected", rejectReason }
-          : p
-      )
-    );
-    setRejectingId(null);
-    setRejectReason("");
-  }
-
-  const filteredProfiles = useMemo(() => {
-    return profiles.filter((p) => {
-      const matchesSearch =
-        !searchQuery ||
-        p.fullName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesRole =
-        roleFilter === "all" || p.role === roleFilter;
-      return matchesSearch && matchesRole;
-    });
-  }, [profiles, searchQuery, roleFilter]);
-
-  const pendingCount = profiles.filter((p) => !p.status).length;
-
-  const tabs = [
-    { key: "queue",     label: "Verification Queue", icon: ShieldCheck, badge: pendingCount },
-    { key: "analytics", label: "Analytics",          icon: BarChart3,   badge: null },
-  ];
+  const {
+    activeTab,       setActiveTab,
+    searchQuery,     setSearchQuery,
+    roleFilter,      setRoleFilter,
+    filteredProfiles,
+    pendingCount,
+    handleApprove,
+    openRejectForm,
+    closeRejectForm,
+    rejectingId,
+    rejectReason,    setRejectReason,
+    rejectError,
+    handleRejectSubmit,
+  } = useAdminDashboard();
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -86,29 +35,19 @@ function AdminDashboard({ currentUser, onLogout }) {
 
       <main className="max-w-4xl mx-auto px-4 py-7 flex flex-col gap-5">
 
-        {/* Greeting */}
         <div>
-          <h1 className="text-xl font-bold text-[#1f4e79]">
-            Admin Dashboard
-          </h1>
+          <h1 className="text-xl font-bold text-[#1f4e79]">Admin Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Brgy. Bulua — Manage profiles, rates, and analytics.
           </p>
         </div>
 
-        {/* Metrics */}
         <section className="flex flex-wrap gap-3" aria-label="Admin metrics">
           {adminMetrics.map((m) => (
-            <MetricCard
-              key={m.label}
-              label={m.label}
-              value={m.value}
-              accentColor={m.accentColor}
-            />
+            <MetricCard key={m.label} label={m.label} value={m.value} accentColor={m.accentColor} />
           ))}
         </section>
 
-        {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-md overflow-hidden">
 
           {/* Tab bar */}
@@ -127,9 +66,9 @@ function AdminDashboard({ currentUser, onLogout }) {
                 >
                   <Icon size={16} />
                   <span>{tab.label}</span>
-                  {tab.badge > 0 && (
+                  {tab.key === "queue" && pendingCount > 0 && (
                     <span className="bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                      {tab.badge}
+                      {pendingCount}
                     </span>
                   )}
                 </button>
@@ -139,11 +78,10 @@ function AdminDashboard({ currentUser, onLogout }) {
 
           <div className="p-6">
 
-            {/* ── Verification Queue Tab ─────────────────────────────── */}
+            {/* ── Verification Queue Tab ──────────────────────────────── */}
             {activeTab === "queue" && (
               <div className="flex flex-col gap-4">
 
-                {/* Search + filter bar */}
                 <div className="flex flex-wrap gap-3">
                   <div className="relative flex-1 min-w-[180px]">
                     <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -186,8 +124,6 @@ function AdminDashboard({ currentUser, onLogout }) {
                         onReject={() => openRejectForm(profile.userId)}
                         isRejectFormOpen={rejectingId === profile.userId}
                       />
-
-                      {/* Inline reject reason form */}
                       {rejectingId === profile.userId && (
                         <form
                           onSubmit={handleRejectSubmit}
@@ -195,35 +131,21 @@ function AdminDashboard({ currentUser, onLogout }) {
                         >
                           <div className="flex items-center gap-2 text-red-700">
                             <AlertCircle size={15} />
-                            <span className="text-sm font-semibold">
-                              Provide a rejection reason
-                            </span>
+                            <span className="text-sm font-semibold">Provide a rejection reason</span>
                           </div>
-                          {rejectError && (
-                            <p className="text-xs text-red-600">{rejectError}</p>
-                          )}
+                          {rejectError && <p className="text-xs text-red-600">{rejectError}</p>}
                           <textarea
                             placeholder="e.g. Missing barangay clearance document..."
                             value={rejectReason}
-                            onChange={(e) => {
-                              setRejectReason(e.target.value);
-                              setRejectError("");
-                            }}
+                            onChange={(e) => setRejectReason(e.target.value)}
                             rows={2}
                             className="px-3 py-2 border border-red-300 rounded-lg text-sm bg-white focus:outline-none focus:border-red-500 resize-none"
                           />
                           <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setRejectingId(null)}
-                              className="px-4 py-1.5 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                            >
+                            <button type="button" onClick={closeRejectForm} className="px-4 py-1.5 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
                               Cancel
                             </button>
-                            <button
-                              type="submit"
-                              className="px-4 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                            >
+                            <button type="submit" className="px-4 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
                               Confirm Rejection
                             </button>
                           </div>
@@ -235,9 +157,10 @@ function AdminDashboard({ currentUser, onLogout }) {
               </div>
             )}
 
-            {/* ── Analytics Tab ──────────────────────────────────────── */}
+            {/* ── Analytics Tab ───────────────────────────────────────── */}
             {activeTab === "analytics" && (
               <div className="flex flex-col gap-6">
+
                 <div>
                   <h3 className="text-sm font-bold text-[#1f4e79] mb-4">
                     Workers by Skill Category
@@ -247,22 +170,12 @@ function AdminDashboard({ currentUser, onLogout }) {
                       const maxCount = Math.max(...workersByCategory.map((w) => w.count));
                       const pct = Math.round((item.count / maxCount) * 100);
                       return (
-                        <div
-                          key={item.category}
-                          className="grid grid-cols-[120px_1fr_36px] items-center gap-3"
-                        >
-                          <span className="text-sm text-gray-600 font-medium">
-                            {item.category}
-                          </span>
+                        <div key={item.category} className="grid grid-cols-[120px_1fr_36px] items-center gap-3">
+                          <span className="text-sm text-gray-600 font-medium">{item.category}</span>
                           <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
-                            <div
-                              className="h-full bg-[#2e75b6] rounded-full transition-all duration-500"
-                              style={{ width: `${pct}%` }}
-                            />
+                            <div className="h-full bg-[#2e75b6] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-sm font-bold text-[#1f4e79] text-right">
-                            {item.count}
-                          </span>
+                          <span className="text-sm font-bold text-[#1f4e79] text-right">{item.count}</span>
                         </div>
                       );
                     })}
@@ -274,16 +187,8 @@ function AdminDashboard({ currentUser, onLogout }) {
                     Job Request Status Breakdown
                   </h3>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {[
-                      { label: "Completed",     count: 87, color: "bg-emerald-100 text-emerald-800" },
-                      { label: "Active",        count: 12, color: "bg-blue-100 text-blue-800" },
-                      { label: "Pending Match", count: 5,  color: "bg-amber-100 text-amber-800" },
-                      { label: "Cancelled",     count: 9,  color: "bg-gray-100 text-gray-600" },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className={`rounded-xl p-4 text-center ${item.color}`}
-                      >
+                    {jobStatusBreakdown.map((item) => (
+                      <div key={item.label} className={`rounded-xl p-4 text-center ${item.color}`}>
                         <p className="text-2xl font-bold">{item.count}</p>
                         <p className="text-xs font-semibold mt-0.5">{item.label}</p>
                       </div>
@@ -302,21 +207,18 @@ function AdminDashboard({ currentUser, onLogout }) {
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
 function ProfileQueueCard({ profile, onApprove, onReject, isRejectFormOpen }) {
   const isResolved = profile.status === "verified" || profile.status === "rejected";
   const RoleIcon   = profile.role === "worker" ? Wrench : User;
 
   return (
-    <article
-      className={`rounded-xl border border-l-4 p-4
-        ${profile.status === "verified"
-          ? "border-gray-200 border-l-emerald-500 bg-emerald-50/40"
-          : profile.status === "rejected"
-            ? "border-gray-200 border-l-red-400 bg-red-50/40"
-            : "border-gray-200 border-l-[#2e75b6] bg-white"
-        }`}
+    <article className={`rounded-xl border border-l-4 p-4
+      ${profile.status === "verified"
+        ? "border-gray-200 border-l-emerald-500 bg-emerald-50/40"
+        : profile.status === "rejected"
+          ? "border-gray-200 border-l-red-400 bg-red-50/40"
+          : "border-gray-200 border-l-[#2e75b6] bg-white"
+      }`}
     >
       <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
         <div className="flex items-center gap-2.5">
@@ -334,22 +236,16 @@ function ProfileQueueCard({ profile, onApprove, onReject, isRejectFormOpen }) {
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-500 mb-3">
         {profile.skillCategory && (
           <span className="flex items-center gap-1.5">
-            <Wrench size={11} />
-            {profile.skillCategory} — ₱{profile.declaredRate}/day
+            <Wrench size={11} />{profile.skillCategory} — ₱{profile.declaredRate}/day
           </span>
         )}
         <span className="flex items-center gap-1.5 col-span-2">
-          <CalendarDays size={11} />
-          Submitted: {profile.submittedAt}
+          <CalendarDays size={11} />Submitted: {profile.submittedAt}
         </span>
         <div className="col-span-2 flex flex-wrap gap-1.5 mt-0.5">
           {profile.documents?.map((doc) => (
-            <span
-              key={doc}
-              className="flex items-center gap-1 bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs"
-            >
-              <FileText size={10} />
-              {doc}
+            <span key={doc} className="flex items-center gap-1 bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+              <FileText size={10} />{doc}
             </span>
           ))}
         </div>
@@ -362,19 +258,11 @@ function ProfileQueueCard({ profile, onApprove, onReject, isRejectFormOpen }) {
 
       {!isResolved && !isRejectFormOpen && (
         <div className="flex justify-end gap-2">
-          <button
-            onClick={onReject}
-            className="flex items-center gap-1.5 px-4 py-1.5 border border-red-300 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-50 transition-colors"
-          >
-            <XCircle size={14} />
-            Reject
+          <button onClick={onReject} className="flex items-center gap-1.5 px-4 py-1.5 border border-red-300 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-50 transition-colors">
+            <XCircle size={14} />Reject
           </button>
-          <button
-            onClick={onApprove}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#1d9e75] text-white text-xs font-semibold rounded-lg hover:bg-[#0f6e56] transition-colors"
-          >
-            <CheckCircle size={14} />
-            Approve
+          <button onClick={onApprove} className="flex items-center gap-1.5 px-4 py-1.5 bg-[#1d9e75] text-white text-xs font-semibold rounded-lg hover:bg-[#0f6e56] transition-colors">
+            <CheckCircle size={14} />Approve
           </button>
         </div>
       )}
@@ -383,3 +271,4 @@ function ProfileQueueCard({ profile, onApprove, onReject, isRejectFormOpen }) {
 }
 
 export default AdminDashboard;
+
